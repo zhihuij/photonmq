@@ -4,6 +4,7 @@ use async_trait::async_trait;
 
 use axum::{routing::{get, post}, http::{Response}, body::{Body}, Router, debug_handler, Json};
 use axum::extract::State;
+use config::Config;
 use serde_json::Value;
 use crate::commit_log::CommitLog;
 
@@ -79,11 +80,13 @@ async fn list_topics(State(topic_mgr_state): State<Arc<TopicMgr>>) -> Response<B
 
 #[async_trait]
 impl Server for HttpServer {
-    async fn start(&self, listening: SocketAddr) {
-        let commit_log = CommitLog::new("/Users/winpro/Documents/RustWorkspace", 1024).unwrap();
+    async fn start(&self, listening: SocketAddr, config: &Config) {
+        let commit_log = CommitLog::new(
+            config.get_string("msg_store_path").unwrap().as_str(), 1024).unwrap();
         let commit_log_state = Arc::new(commit_log);
 
-        let topic_mgr = TopicMgr::new("/Users/winpro/Documents/RustWorkspace");
+        let topic_mgr = TopicMgr::new(
+            config.get_string("topic_store_path").unwrap().as_str());
         let topic_mgr_state = Arc::new(topic_mgr);
 
         let message_routes = Router::new()
