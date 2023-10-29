@@ -91,7 +91,7 @@ impl TopicMgr {
     }
 
     pub fn get_topic_info(&self, topic_name: &str) -> Result<Topic> {
-        let mut topics = self.topic_cache.read().unwrap();
+        let topics = self.topic_cache.read().unwrap();
         if let Some(topic) = topics.get(topic_name) {
             println!("Name: {}", topic.topic_name);
 

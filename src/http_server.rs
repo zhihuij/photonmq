@@ -4,9 +4,9 @@ use async_trait::async_trait;
 
 use axum::{routing::{get, post}, http::{Response}, body::{Body}, Router, debug_handler, Json};
 use axum::extract::State;
-use config::Config;
 use serde_json::Value;
 use crate::commit_log::CommitLog;
+use crate::config::ConfigOptions;
 
 use crate::server::Server;
 use crate::message::{ConsumeMessage, Message};
@@ -59,14 +59,14 @@ async fn consume_message(State(commit_log_state): State<Arc<CommitLog>>, body: S
 #[debug_handler]
 async fn create_topic(State(topic_mgr_state): State<Arc<TopicMgr>>,
                       Json(new_topic): Json<Topic>) -> Response<Body> {
-    let create_result = topic_mgr_state.create_topic(new_topic);
+    let _ = topic_mgr_state.create_topic(new_topic);
     Response::new(Body::from("create ok"))
 }
 
 #[debug_handler]
 async fn delete_topic(State(topic_mgr_state): State<Arc<TopicMgr>>,
                       Json(topic_info): Json<Value>) -> Response<Body> {
-    let delete_result = topic_mgr_state.delete_topic(topic_info["topic_name"].as_str().unwrap());
+    let _ = topic_mgr_state.delete_topic(topic_info["topic_name"].as_str().unwrap());
     Response::new(Body::from("delete ok"))
 }
 
@@ -80,13 +80,12 @@ async fn list_topics(State(topic_mgr_state): State<Arc<TopicMgr>>) -> Response<B
 
 #[async_trait]
 impl Server for HttpServer {
-    async fn start(&self, listening: SocketAddr, config: &Config) {
+    async fn start(&self, listening: SocketAddr, config: ConfigOptions) {
         let commit_log = CommitLog::new(
-            config.get_string("msg_store_path").unwrap().as_str(), 1024).unwrap();
+            config.msg_store_path.unwrap().as_str(), 1024).unwrap();
         let commit_log_state = Arc::new(commit_log);
 
-        let topic_mgr = TopicMgr::new(
-            config.get_string("topic_store_path").unwrap().as_str());
+        let topic_mgr = TopicMgr::new(config.topic_store_path.unwrap().as_str());
         let topic_mgr_state = Arc::new(topic_mgr);
 
         let message_routes = Router::new()

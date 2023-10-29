@@ -7,7 +7,6 @@ use crate::index::MessageIndexFile;
 use crate::mmap_file::MemoryMappedFile;
 
 pub struct CommitLog {
-    base_path: String,
     current_file: Arc<RwLock<MemoryMappedFile>>,
     current_index_file: Arc<RwLock<MessageIndexFile>>,
     index_counter: AtomicUsize,
@@ -25,7 +24,6 @@ impl CommitLog {
             MessageIndexFile::open(msg_index_path.to_str().unwrap(), max_file_size)?));
 
         Ok(CommitLog {
-            base_path: base_path.to_string(),
             current_file,
             current_index_file,
             index_counter: AtomicUsize::new(0),
