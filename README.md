@@ -10,4 +10,4 @@ Yet another wheel-building project.
 
 This project is licensed under the [MIT license][license].
 
-[license]: https://github.com/zhihuij/photonmq/main/LICENSE
+[license]: https://github.com/zhihuij/photonmq/blob/main/LICENSE
