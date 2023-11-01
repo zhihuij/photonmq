@@ -3,9 +3,12 @@ mod server;
 mod message;
 mod http_server;
 mod commit_log;
-mod index;
+mod msg_index;
 mod topic_mgr;
 mod config;
+mod msg_store;
+mod index_store;
+mod error;
 
 use std::error::Error;
 use std::net::SocketAddr;

@@ -1,72 +1,66 @@
+use std::collections::HashMap;
 use serde::{Serialize, Deserialize};
-
-#[derive(Debug, Serialize, Deserialize)]
-struct MessageHeader {
-    topic: String,
-    partition: i32,
-    key: Option<String>,
-    timestamp: u64,
-}
+use snafu::ResultExt;
+use crate::error::{DecodeMsgBinSnafu, DecodeMsgJsonSnafu, EncodeMsgBinSnafu, EncodeMsgJsonSnafu, Result};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Message {
-    header: MessageHeader,
-    payload: String,
+    pub topic: String,
+    pub queue_id: u32,
+    pub timestamp: u64,
+    pub payload: Option<String>,
+    pub offset: Option<u64>,
+    pub key: Option<String>,
+    pub header: Option<HashMap<String, String>>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct ConsumeMessage {
+pub struct DispatchMessage {
     pub topic: String,
-    pub partition: u32,
-    pub offset: u64,
+    pub queue_id: u32,
+    pub msg_offset: usize,
+    pub msg_size: usize,
+    pub index_offset: u64,
+    pub timestamp: u64,
 }
 
 impl Message {
     // Encode the message into a binary format
-    pub fn encode(&self) -> bincode::Result<Vec<u8>> {
-        bincode::serialize(self)
+    pub fn encode(&self) -> Result<Vec<u8>> {
+        bincode::serialize(self).context(EncodeMsgBinSnafu)
     }
 
     // Decode a binary message into a CustomMessage
-    pub fn decode(encoded: &[u8]) -> bincode::Result<Self> {
-        bincode::deserialize(encoded)
+    pub fn decode(encoded: &[u8]) -> Result<Self> {
+        bincode::deserialize(encoded).context(DecodeMsgBinSnafu)
     }
 
-    pub fn encode_json(&self) -> serde_json::Result<String> {
-        serde_json::to_string(&self)
+    pub fn encode_json(&self) -> Result<String> {
+        serde_json::to_string(&self).context(EncodeMsgJsonSnafu)
     }
 
-    pub fn decode_json(encoded: &str) -> serde_json::Result<Message> {
-        serde_json::from_str(encoded)
-    }
-}
-
-impl ConsumeMessage {
-    pub fn decode_json(encoded: &str) -> Option<Self> {
-        serde_json::from_str(encoded).unwrap()
+    pub fn decode_json(encoded: &str) -> Result<Message> {
+        serde_json::from_str(encoded).context(DecodeMsgJsonSnafu)
     }
 }
 
 #[cfg(test)]
 mod tests {
     use std::ops::Deref;
-    use crate::message::{Message, MessageHeader};
+    use crate::message::Message;
 
     #[tokio::test]
     pub async fn encode_and_decode() {
-        // Create a sample CustomMessage
-        let header = MessageHeader {
-            topic: "my_topic".to_string(),
-            partition: 0,
-            key: Some("message_key".to_string()),
-            timestamp: 1631894400,
-        };
-
         let payload = "This is a custom message payload.".to_string();
 
         let message = Message {
-            header,
-            payload,
+            topic: "my_topic".to_string(),
+            queue_id: 0,
+            key: Some("message_key".to_string()),
+            timestamp: 1631894400,
+            payload: Some(payload),
+            offset: None,
+            header: None,
         };
 
         // Encode the message into a binary format

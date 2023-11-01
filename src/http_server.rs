@@ -5,23 +5,23 @@ use async_trait::async_trait;
 use axum::{routing::{get, post}, http::{Response}, body::{Body}, Router, debug_handler, Json};
 use axum::extract::State;
 use serde_json::Value;
-use crate::commit_log::CommitLog;
 use crate::config::ConfigOptions;
 
 use crate::server::Server;
-use crate::message::{ConsumeMessage, Message};
+use crate::message::Message;
+use crate::msg_store::MessageStore;
 use crate::topic_mgr::{Topic, TopicMgr};
 
 pub struct HttpServer;
 
 #[debug_handler]
-async fn produce_message(State(commit_log_state): State<Arc<CommitLog>>, body: String) -> Response<Body> {
+async fn produce_message(State(msg_store_state): State<Arc<MessageStore>>, body: String) -> Response<Body> {
     let body_str = body.as_str();
     let message = Message::decode_json(body_str).unwrap();
 
     println!("produce message: {:?}", &message);
 
-    let write_result = commit_log_state.write_records(message.encode().unwrap()).await;
+    let write_result = msg_store_state.write_msg(message).await;
     match write_result {
         Ok(_) => {
             Response::new(Body::from("Hello, Produce Message"))
@@ -34,17 +34,17 @@ async fn produce_message(State(commit_log_state): State<Arc<CommitLog>>, body: S
 }
 
 #[debug_handler]
-async fn consume_message(State(commit_log_state): State<Arc<CommitLog>>, body: String) -> Response<Body> {
+async fn consume_message(State(msg_store_state): State<Arc<MessageStore>>, body: String) -> Response<Body> {
     let body_str = body.as_str();
-    let consume_msg = ConsumeMessage::decode_json(body_str).unwrap();
+    let consume_msg = Message::decode_json(body_str).unwrap();
 
     println!("consume message: {:?}", &consume_msg);
 
-    let read_result = commit_log_state.read_records(consume_msg.offset as usize).await;
+    let read_result = msg_store_state.read_msg(consume_msg).await;
     match read_result {
-        Ok(msg_bytes) => {
-            let msg_result = Message::decode(msg_bytes.as_slice()).unwrap();
-            let msg_json = msg_result.encode_json().unwrap();
+        Ok(msg_list) => {
+            let msg0 = msg_list.get(0).unwrap();
+            let msg_json = msg0.encode_json().unwrap();
 
             let consumed_msg = format!("{:?}", msg_json);
             Response::new(Body::from(consumed_msg))
@@ -81,17 +81,16 @@ async fn list_topics(State(topic_mgr_state): State<Arc<TopicMgr>>) -> Response<B
 #[async_trait]
 impl Server for HttpServer {
     async fn start(&self, listening: SocketAddr, config: ConfigOptions) {
-        let commit_log = CommitLog::new(
-            config.msg_store_path.unwrap().as_str(), 1024).unwrap();
-        let commit_log_state = Arc::new(commit_log);
+        let msg_store = MessageStore::open(&config).unwrap();
+        let msg_store_state = Arc::new(msg_store);
 
-        let topic_mgr = TopicMgr::new(config.topic_store_path.unwrap().as_str());
+        let topic_mgr = TopicMgr::new(config.topic_store_path.as_str());
         let topic_mgr_state = Arc::new(topic_mgr);
 
         let message_routes = Router::new()
             .route("/produce_message", post(produce_message))
             .route("/consume_message", get(consume_message))
-            .with_state(commit_log_state);
+            .with_state(msg_store_state);
 
         let topic_routes = Router::new()
             .route("/create_topic", post(create_topic))

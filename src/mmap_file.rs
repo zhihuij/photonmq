@@ -1,6 +1,8 @@
-use std::fs::{OpenOptions};
-use std::io::{self, Result};
+use std::fs::OpenOptions;
 use memmap2::{MmapMut};
+use snafu::{location, Location, ResultExt};
+use crate::error::{Result, StdIOSnafu};
+use crate::error::Error::InvalidInput;
 
 pub struct MemoryMappedFile {
     mmap: MmapMut,
@@ -14,10 +16,10 @@ impl MemoryMappedFile {
             .read(true)
             .write(true)
             .create(true)
-            .open(file_path)?;
-        file.set_len(file_size)?;
+            .open(file_path).context(StdIOSnafu)?;
+        file.set_len(file_size).context(StdIOSnafu)?;
 
-        let mmap = unsafe { MmapMut::map_mut(&file)? };
+        let mmap = unsafe { MmapMut::map_mut(&file).context(StdIOSnafu)? };
 
         let offset: usize = 0;
 
@@ -33,17 +35,17 @@ impl MemoryMappedFile {
             self.mmap[self.offset..self.offset + data_len].copy_from_slice(data.as_slice());
 
             // Flush changes to disk (optional).
-            self.mmap.flush()?;
+            self.mmap.flush().context(StdIOSnafu)?;
 
             let old_offset = self.offset;
             self.offset += data_len;
 
             Ok(old_offset)
         } else {
-            return Err(io::Error::new(
-                io::ErrorKind::InvalidInput,
-                "Data size exceeds the mapped region's size.",
-            ));
+            Err(InvalidInput {
+                location: location!(),
+                msg: "Buffer size doesn't match the mapped region's size.".to_string(),
+            })
         }
     }
 
@@ -57,10 +59,10 @@ impl MemoryMappedFile {
 
             Ok(buffer)
         } else {
-            return Err(io::Error::new(
-                io::ErrorKind::InvalidInput,
-                "Buffer size doesn't match the mapped region's size.",
-            ));
+            Err(InvalidInput {
+                location: location!(),
+                msg: "Buffer size doesn't match the mapped region's size.".to_string(),
+            })
         }
     }
 }

@@ -1,34 +1,31 @@
-use config::{Config, ConfigError, File, FileFormat};
+use config::{Config, File, FileFormat};
 use serde::{Deserialize, Serialize};
-use snafu::{Location, ResultExt, Snafu};
+use snafu::ResultExt;
+use crate::error::{LoadLayeredConfigSnafu, Result};
+use crate::msg_index::MSG_INDEX_UNIT_SIZE;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(default)]
 pub struct ConfigOptions {
-    pub msg_store_path: Option<String>,
-    pub topic_store_path: Option<String>,
+    pub msg_store_path: String,
+    pub topic_store_path: String,
+    pub index_file_size: u64,
+    pub msg_store_file_size: u64,
 }
+
+const DEFAULT_INDEX_FILE_SIZE: u64 = 300000 * MSG_INDEX_UNIT_SIZE as u64;
+const DEFAULT_MSG_STORE_FILE_SIZE: u64 = 1024 * 1024 * 1024;
 
 impl Default for ConfigOptions {
     fn default() -> Self {
         Self {
-            msg_store_path: None,
-            topic_store_path: None,
+            msg_store_path: "".to_string(),
+            topic_store_path: "".to_string(),
+            index_file_size: DEFAULT_INDEX_FILE_SIZE,
+            msg_store_file_size: DEFAULT_MSG_STORE_FILE_SIZE,
         }
     }
 }
-
-#[derive(Debug, Snafu)]
-#[snafu(visibility(pub))]
-pub enum Error {
-    #[snafu(display("Failed to load layered config"))]
-    LoadLayeredConfig {
-        source: ConfigError,
-        location: Location,
-    },
-}
-
-pub type Result<T> = std::result::Result<T, Error>;
 
 impl ConfigOptions {
     pub fn load_layered_options<'de, T: Serialize + Deserialize<'de> + Default>() -> Result<T> {
