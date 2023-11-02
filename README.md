@@ -1,6 +1,10 @@
 # PhotonMQ
 
 A Simple Cloud Native Message Queue for Cost Efficiency.
+<p>
+    <a href="https://github.com/zhihuij/photonmq/actions/workflows/develop.yml"><img src="https://github.com/GreptimeTeam/greptimedb/actions/workflows/develop.yml/badge.svg" alt="CI"></img></a>
+</p>
+
 
 ## Description
 
