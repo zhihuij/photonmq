@@ -71,7 +71,7 @@ impl MemoryMappedFile {
 mod tests {
     use tempfile::{TempDir};
     use crate::mmap_file::MemoryMappedFile;
-    use std::io::{Result};
+    use crate::error::Result;
 
     pub fn create_temp_dir(prefix: &str) -> TempDir {
         tempfile::Builder::new().prefix(prefix).tempdir().unwrap()
@@ -83,7 +83,8 @@ mod tests {
         let file_size = 1024;
         let file_path = dir_path.path().join("temp_mmap_file");
         // Create or open the memory-mapped file.
-        let mut mem_mapped_file = MemoryMappedFile::open(file_path.to_str().unwrap(), file_size)?;
+        let mut mem_mapped_file = MemoryMappedFile::open(
+            file_path.to_str().unwrap(), file_size)?;
 
         // Write data to the memory-mapped file.
         let data_to_write = "Hello, Memory-Mapped File!";

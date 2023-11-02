@@ -126,7 +126,7 @@ mod tests {
     pub async fn test_write_read() -> Result<()> {
         let dir_path = create_temp_dir("topic_mgr_test");
         // Create or open the memory-mapped file.
-        let mut topic_mgr = TopicMgr::new(dir_path.path().to_str().unwrap());
+        let topic_mgr = TopicMgr::new(dir_path.path().to_str().unwrap());
 
         topic_mgr.create_topic(Topic {
             topic_name: "test_topic_name".to_string(),
