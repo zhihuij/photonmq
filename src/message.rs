@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use serde::{Serialize, Deserialize};
 use snafu::ResultExt;
-use crate::error::{DecodeMsgBinSnafu, DecodeMsgJsonSnafu, EncodeMsgBinSnafu, EncodeMsgJsonSnafu, Result};
+use crate::error::{DecodeMsgBinSnafu, EncodeMsgBinSnafu, Result};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Message {
@@ -33,14 +33,6 @@ impl Message {
     // Decode a binary message into a CustomMessage
     pub fn decode(encoded: &[u8]) -> Result<Self> {
         bincode::deserialize(encoded).context(DecodeMsgBinSnafu)
-    }
-
-    pub fn encode_json(&self) -> Result<String> {
-        serde_json::to_string(&self).context(EncodeMsgJsonSnafu)
-    }
-
-    pub fn decode_json(encoded: &str) -> Result<Message> {
-        serde_json::from_str(encoded).context(DecodeMsgJsonSnafu)
     }
 }
 

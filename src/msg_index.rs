@@ -9,8 +9,6 @@ use crate::error::Error::InvalidInput;
 pub struct MessageIndex {
     mmap: MmapMut,
     start_index: u64,
-    topic: String,
-    queue_id: u32,
 }
 
 pub const MSG_INDEX_UNIT_SIZE: usize = std::mem::size_of::<MessageIndexUnit>();
@@ -41,7 +39,7 @@ impl MessageIndex {
 
         let start_index: u64 = 0;
 
-        Ok(MessageIndex { mmap, start_index, topic: topic.to_string(), queue_id })
+        Ok(MessageIndex { mmap, start_index })
     }
 
     // Write data to the memory-mapped file.

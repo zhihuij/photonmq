@@ -15,13 +15,11 @@ use crate::topic_mgr::{Topic, TopicMgr};
 pub struct HttpServer;
 
 #[debug_handler]
-async fn produce_message(State(msg_store_state): State<Arc<MessageStore>>, body: String) -> Response<Body> {
-    let body_str = body.as_str();
-    let message = Message::decode_json(body_str).unwrap();
+async fn produce_message(State(msg_store_state): State<Arc<MessageStore>>,
+                         Json(produce_msg): Json<Message>) -> Response<Body> {
+    println!("produce message: {:?}", &produce_msg);
 
-    println!("produce message: {:?}", &message);
-
-    let write_result = msg_store_state.write_msg(message).await;
+    let write_result = msg_store_state.write_msg(produce_msg).await;
     match write_result {
         Ok(_) => {
             Response::new(Body::from("Hello, Produce Message"))
@@ -34,17 +32,15 @@ async fn produce_message(State(msg_store_state): State<Arc<MessageStore>>, body:
 }
 
 #[debug_handler]
-async fn consume_message(State(msg_store_state): State<Arc<MessageStore>>, body: String) -> Response<Body> {
-    let body_str = body.as_str();
-    let consume_msg = Message::decode_json(body_str).unwrap();
-
+async fn consume_message(State(msg_store_state): State<Arc<MessageStore>>,
+                         Json(consume_msg): Json<Message>) -> Response<Body> {
     println!("consume message: {:?}", &consume_msg);
 
     let read_result = msg_store_state.read_msg(consume_msg).await;
     match read_result {
         Ok(msg_list) => {
             let msg0 = msg_list.get(0).unwrap();
-            let msg_json = msg0.encode_json().unwrap();
+            let msg_json = serde_json::to_string(&msg0).unwrap();
 
             let consumed_msg = format!("{:?}", msg_json);
             Response::new(Body::from(consumed_msg))
@@ -68,6 +64,23 @@ async fn delete_topic(State(topic_mgr_state): State<Arc<TopicMgr>>,
                       Json(topic_info): Json<Value>) -> Response<Body> {
     let _ = topic_mgr_state.delete_topic(topic_info["topic_name"].as_str().unwrap());
     Response::new(Body::from("delete ok"))
+}
+
+#[debug_handler]
+async fn get_topic(State(topic_mgr_state): State<Arc<TopicMgr>>,
+                      Json(topic_info): Json<Value>) -> Response<Body> {
+    let topic_info_result = topic_mgr_state.get_topic_info(topic_info["topic_name"].as_str().unwrap());
+    match topic_info_result {
+        Ok(topic_info) => {
+            let result_json_str = serde_json::to_string(&topic_info).unwrap();
+            Response::new(Body::from(result_json_str))
+        }
+        Err(error) => {
+            let err_msg = format!("Write message error: {}", error);
+            Response::new(Body::from(err_msg))
+        }
+    }
+
 }
 
 #[debug_handler]
@@ -95,6 +108,7 @@ impl Server for HttpServer {
         let topic_routes = Router::new()
             .route("/create_topic", post(create_topic))
             .route("/delete_topic", post(delete_topic))
+            .route("/get_topic", get(get_topic))
             .route("/list_topics", get(list_topics))
             .with_state(topic_mgr_state);
 
