@@ -36,10 +36,7 @@ impl CommitLog {
             // Lock the RwLock for reading
             let current_file = self.current_file.read().unwrap();
             // Read and return records
-            let records = current_file.read(msg_index_unit.offset as usize,
-                                            msg_index_unit.size as usize).unwrap();
-
-            Ok(records)
+            current_file.read(msg_index_unit.offset as usize, msg_index_unit.size as usize)
         } else {
             Err(InvalidInput {
                 location: location!(),
