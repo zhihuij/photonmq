@@ -2,7 +2,7 @@
 
 A Simple Cloud Native Message Queue for Cost Efficiency.
 <p>
-    <a href="https://github.com/zhihuij/photonmq/actions/workflows/develop.yml"><img src="https://github.com/zhihuij/photonmq/actions/workflows/develop.yml/badge.svg" alt="CI"></img></a>
+    <a href="https://github.com/zhihuij/photonmq/actions/workflows/build.yml"><img src="https://github.com/zhihuij/photonmq/actions/workflows/develop.yml/badge.svg" alt="build"></img></a>
 </p>
 
 
