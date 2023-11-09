@@ -9,7 +9,7 @@ pub struct Message {
     pub queue_id: u32,
     pub timestamp: u64,
     pub payload: Option<String>,
-    pub offset: Option<u64>,
+    pub offset: Option<usize>,
     pub key: Option<String>,
     pub header: Option<HashMap<String, String>>,
 }
@@ -20,7 +20,6 @@ pub struct DispatchMessage {
     pub queue_id: u32,
     pub msg_offset: usize,
     pub msg_size: usize,
-    pub index_offset: u64,
     pub timestamp: u64,
 }
 

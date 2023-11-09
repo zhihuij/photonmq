@@ -6,12 +6,13 @@ use crate::error::Error::InvalidInput;
 
 pub struct MemoryMappedFile {
     mmap: MmapMut,
-    offset: usize,
+    min_offset: usize,
+    max_offset: usize,
 }
 
 impl MemoryMappedFile {
     // Constructor: Open or create a memory-mapped file.
-    pub fn open(file_path: &str, file_size: u64) -> Result<Self> {
+    pub fn open(file_path: &str, start_offset: usize, file_size: u64) -> Result<Self> {
         let file = OpenOptions::new()
             .read(true)
             .write(true)
@@ -21,9 +22,15 @@ impl MemoryMappedFile {
 
         let mmap = unsafe { MmapMut::map_mut(&file).context(StdIOSnafu)? };
 
-        let offset: usize = 0;
+        Ok(MemoryMappedFile { mmap, min_offset: start_offset, max_offset: start_offset })
+    }
 
-        Ok(MemoryMappedFile { mmap, offset })
+    pub fn get_min_offset(&self) -> usize {
+        self.min_offset
+    }
+
+    pub fn get_max_offset(&self) -> usize {
+        self.max_offset
     }
 
     // Write data to the memory-mapped file.
@@ -31,14 +38,14 @@ impl MemoryMappedFile {
         let data_len = data.len();
 
         // Ensure the data fits within the mapped region.
-        if self.offset + data_len <= self.mmap.len() {
-            self.mmap[self.offset..self.offset + data_len].copy_from_slice(data.as_slice());
+        if self.max_offset + data_len <= self.mmap.len() {
+            self.mmap[self.max_offset..self.max_offset + data_len].copy_from_slice(data.as_slice());
 
             // Flush changes to disk (optional).
             self.mmap.flush().context(StdIOSnafu)?;
 
-            let old_offset = self.offset;
-            self.offset += data_len;
+            let old_offset = self.max_offset;
+            self.max_offset += data_len;
 
             Ok(old_offset)
         } else {
@@ -84,7 +91,7 @@ mod tests {
         let file_path = dir_path.path().join("temp_mmap_file");
         // Create or open the memory-mapped file.
         let mut mem_mapped_file = MemoryMappedFile::open(
-            file_path.to_str().unwrap(), file_size)?;
+            file_path.to_str().unwrap(), 0, file_size)?;
 
         // Write data to the memory-mapped file.
         let data_to_write = "Hello, Memory-Mapped File!";

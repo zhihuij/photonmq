@@ -17,7 +17,7 @@ impl CommitLog {
         let msg_log_path = base_dir.join("test.log");
         // Create or open the initial MemoryMappedFile
         let current_file = Arc::new(RwLock::new(
-            MemoryMappedFile::open(msg_log_path.to_str().unwrap(), max_file_size)?));
+            MemoryMappedFile::open(msg_log_path.to_str().unwrap(), 0, max_file_size)?));
 
         Ok(CommitLog {
             current_file

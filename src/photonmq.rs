@@ -9,6 +9,7 @@ mod config;
 mod msg_store;
 mod index_store;
 mod error;
+mod mapped_file_queue;
 
 use std::error::Error;
 use std::net::SocketAddr;

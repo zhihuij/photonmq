@@ -25,7 +25,7 @@ async fn produce_message(State(msg_store_state): State<Arc<MessageStore>>,
             Response::new(Body::from("Hello, Produce Message"))
         }
         Err(error) => {
-            let err_msg = format!("Write message error: {}", error);
+            let err_msg = format!("Write message error: {:?}", error);
             Response::new(Body::from(err_msg))
         }
     }
@@ -46,7 +46,7 @@ async fn consume_message(State(msg_store_state): State<Arc<MessageStore>>,
             Response::new(Body::from(consumed_msg))
         }
         Err(error) => {
-            let err_msg = format!("consume message error: {}", error);
+            let err_msg = format!("consume message error: {:?}", error);
             Response::new(Body::from(err_msg))
         }
     }
@@ -76,7 +76,7 @@ async fn get_topic(State(topic_mgr_state): State<Arc<TopicMgr>>,
             Response::new(Body::from(result_json_str))
         }
         Err(error) => {
-            let err_msg = format!("Write message error: {}", error);
+            let err_msg = format!("Write message error: {:?}", error);
             Response::new(Body::from(err_msg))
         }
     }

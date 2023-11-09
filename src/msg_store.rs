@@ -1,5 +1,4 @@
 use std::sync::{Arc, Mutex};
-use std::sync::atomic::{AtomicUsize, Ordering};
 use crate::commit_log::CommitLog;
 use crate::config::ConfigOptions;
 use crate::index_store::IndexStore;
@@ -9,7 +8,6 @@ use crate::error::Result;
 pub struct MessageStore {
     commit_log: Arc<Mutex<CommitLog>>,
     index_store: Arc<Mutex<IndexStore>>,
-    index_counter: AtomicUsize,
 }
 
 impl MessageStore {
@@ -20,16 +18,14 @@ impl MessageStore {
         let config_clone = config.clone();
         let index_store = Arc::new(Mutex::new(IndexStore::open(config_clone)?));
 
-        Ok(MessageStore { commit_log, index_store, index_counter: AtomicUsize::new(0) })
+        Ok(MessageStore { commit_log, index_store })
     }
 
-    pub async fn write_msg(&self, msg: Message) -> Result<u64> {
+    pub async fn write_msg(&self, msg: Message) -> Result<usize> {
         // write the msg
         let commit_log = self.commit_log.lock().unwrap();
         let encoded_msg = msg.encode()?;
         let msg_offset = commit_log.write_records(&encoded_msg)?;
-
-        let old_offset = self.index_counter.fetch_add(1, Ordering::SeqCst);
 
         let mut index_store = self.index_store.lock().unwrap();
         let dispatch_msg = DispatchMessage {
@@ -37,7 +33,6 @@ impl MessageStore {
             queue_id: msg.queue_id,
             msg_offset,
             msg_size: encoded_msg.len(),
-            index_offset: old_offset as u64,
             timestamp: msg.timestamp,
         };
 
