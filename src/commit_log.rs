@@ -1,3 +1,4 @@
+use std::path::PathBuf;
 use snafu::{location, Location};
 use crate::error::Error::InvalidInput;
 use crate::msg_index::MessageIndexUnit;
@@ -10,7 +11,11 @@ pub struct CommitLog {
 
 impl CommitLog {
     pub fn open(store_path: &str, max_file_size: u64) -> Result<Self> {
-        let mapped_file_queue = MappedFileQueue::open(store_path, max_file_size)?;
+        let base_dir = PathBuf::from(store_path);
+        let msg_index_dir = base_dir.join("commitlog");
+
+        let mapped_file_queue = MappedFileQueue::open(
+            msg_index_dir.as_path().to_str().unwrap(), max_file_size)?;
         Ok(CommitLog { mapped_file_queue })
     }
 

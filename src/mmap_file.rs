@@ -22,6 +22,7 @@ impl MemoryMappedFile {
 
         let mmap = unsafe { MmapMut::map_mut(&file).context(StdIOSnafu)? };
 
+        // TODO max_offset?
         Ok(MemoryMappedFile { mmap, min_offset: start_offset, max_offset: start_offset })
     }
 

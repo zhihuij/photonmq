@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use snafu::{location, Location};
 use crate::error::Error::InvalidInput;
 use crate::error::Result;
@@ -11,10 +11,27 @@ pub struct MappedFileQueue {
 }
 
 impl MappedFileQueue {
-    // Constructor: Open or create a memory-mapped file.
     pub fn open(store_path: &str, max_file_size: u64) -> Result<Self> {
-        // TODO load exist mapped files
-        Ok(MappedFileQueue { store_path: store_path.to_string(), max_file_size, mapped_files: Vec::new() })
+        // load exist mapped files
+        let mut mapped_files = Vec::new();
+        let store_path_dir = Path::new(store_path);
+        for entry in store_path_dir.read_dir().unwrap() {
+            if let Ok(entry) = entry {
+                let entry_path = entry.path();
+                if entry_path.is_file() {
+                    let mapped_file_name = entry_path.file_name().unwrap().to_str().unwrap();
+                    let mapped_file_path = entry_path.to_str().unwrap();
+                    let start_offset: usize = mapped_file_name.parse().expect("Error while parse file name");
+                    let mapped_file = MemoryMappedFile::open(
+                        mapped_file_path, start_offset, max_file_size).expect("Error while load mapped file");
+
+                    println!("loaded mapped file: {:?}, offset={}", &entry.path(), start_offset);
+                    mapped_files.push(mapped_file);
+                }
+            }
+        }
+
+        Ok(MappedFileQueue { store_path: store_path.to_string(), max_file_size, mapped_files })
     }
 
     pub fn get_mapped_files(&self) -> &Vec<MemoryMappedFile> {
@@ -43,7 +60,6 @@ impl MappedFileQueue {
         self.mapped_files.last_mut().unwrap()
     }
 
-    // Write data to the memory-mapped file.
     pub fn append(&mut self, data: &Vec<u8>) -> Result<usize> {
         let mapped_file = self.get_last_mapped_file_mut();
         let append_result = mapped_file.append(data);
@@ -67,7 +83,6 @@ impl MappedFileQueue {
         }
     }
 
-    // Read data from the memory-mapped file.
     pub fn read(&self, offset: usize, data_size: usize) -> Result<Vec<u8>> {
         let mapped_file_result = self.mapped_files.iter().find(
             |&f| f.get_min_offset() <= offset && offset < f.get_max_offset());

@@ -18,7 +18,7 @@ pub struct TopicMgr {
 impl TopicMgr {
     pub fn new(db_path: &str) -> Self {
         let base_dir = PathBuf::from(db_path);
-        let db_file_path = base_dir.join("topic.db");
+        let db_file_path = base_dir.join("db").join("topic.db");
         let conn = Connection::open(db_file_path).unwrap();
 
         // create table for topic meta
