@@ -13,6 +13,7 @@ pub struct MappedFileQueue {
 impl MappedFileQueue {
     // Constructor: Open or create a memory-mapped file.
     pub fn open(store_path: &str, max_file_size: u64) -> Result<Self> {
+        // TODO load exist mapped files
         Ok(MappedFileQueue { store_path: store_path.to_string(), max_file_size, mapped_files: Vec::new() })
     }
 
@@ -20,7 +21,7 @@ impl MappedFileQueue {
         &self.mapped_files
     }
 
-    fn create_mapped_file(&mut self, start_offset: usize) -> &mut MemoryMappedFile {
+    pub fn create_mapped_file(&mut self, start_offset: usize) -> &mut MemoryMappedFile {
         let store_path_clone = self.store_path.clone();
         let base_dir = PathBuf::from(store_path_clone);
         let file_name = format!("{:020}", start_offset);
