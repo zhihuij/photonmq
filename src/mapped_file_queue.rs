@@ -16,7 +16,11 @@ impl MappedFileQueue {
         Ok(MappedFileQueue { store_path: store_path.to_string(), max_file_size, mapped_files: Vec::new() })
     }
 
-    fn create_mapped_file(&mut self, start_offset: usize) -> Option<&mut MemoryMappedFile> {
+    pub fn get_mapped_files(&self) -> &Vec<MemoryMappedFile> {
+        &self.mapped_files
+    }
+
+    fn create_mapped_file(&mut self, start_offset: usize) -> &mut MemoryMappedFile {
         let store_path_clone = self.store_path.clone();
         let base_dir = PathBuf::from(store_path_clone);
         let file_name = format!("{:020}", start_offset);
@@ -28,21 +32,38 @@ impl MappedFileQueue {
             file_path.as_path().to_str().unwrap(), start_offset, self.max_file_size).unwrap();
 
         self.mapped_files.push(mapped_file);
-        self.mapped_files.last_mut()
+        self.mapped_files.last_mut().unwrap()
     }
 
-    fn get_last_mapped_file_mut(&mut self, offset: usize) -> Option<&mut MemoryMappedFile> {
-        if offset == 0 {
-            self.create_mapped_file(offset);
+    fn get_last_mapped_file_mut(&mut self) -> &mut MemoryMappedFile {
+        if self.mapped_files.len() == 0 {
+            self.create_mapped_file(0);
         }
-        self.mapped_files.last_mut()
+        self.mapped_files.last_mut().unwrap()
     }
 
     // Write data to the memory-mapped file.
     pub fn append(&mut self, data: &Vec<u8>) -> Result<usize> {
-        // TODO offset?
-        let mapped_file = self.get_last_mapped_file_mut(0).unwrap();
-        mapped_file.append(data)
+        let mapped_file = self.get_last_mapped_file_mut();
+        let append_result = mapped_file.append(data);
+
+        match append_result {
+            Ok(write_offset) => { Ok(write_offset) }
+            Err(err) => {
+                match err {
+                    InvalidInput { .. } => {
+                        // data size exceed the size of current file, create a new one and retry
+                        let max_offset = mapped_file.get_max_offset();
+                        let new_mapped_file = self.create_mapped_file(max_offset);
+
+                        new_mapped_file.append(data)
+                    }
+                    other => {
+                        Err(other)
+                    }
+                }
+            }
+        }
     }
 
     // Read data from the memory-mapped file.
@@ -60,5 +81,34 @@ impl MappedFileQueue {
                 })
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use tempfile::{TempDir};
+    use crate::error::Result;
+    use crate::mapped_file_queue::MappedFileQueue;
+
+    pub fn create_temp_dir(prefix: &str) -> TempDir {
+        tempfile::Builder::new().prefix(prefix).tempdir().unwrap()
+    }
+
+    #[tokio::test]
+    pub async fn test_write_read() -> Result<()> {
+        let dir_path = create_temp_dir("topic_mgr_test");
+        // Create or open the memory-mapped file.
+        let mut mapped_file_queue = MappedFileQueue::open(
+            dir_path.path().to_str().unwrap(), 20)?;
+
+        let test_str = "hello world".as_bytes();
+        let test_data = Vec::from(test_str);
+
+        mapped_file_queue.append(&test_data).expect("Error while write");
+        mapped_file_queue.append(&test_data).expect("Error while write");
+
+        assert_eq!(mapped_file_queue.get_mapped_files().len(), 2);
+
+        Ok(())
     }
 }

@@ -36,10 +36,11 @@ impl MemoryMappedFile {
     // Write data to the memory-mapped file.
     pub fn append(&mut self, data: &Vec<u8>) -> Result<usize> {
         let data_len = data.len();
+        let write_pos = self.max_offset - self.min_offset;
 
         // Ensure the data fits within the mapped region.
-        if self.max_offset + data_len <= self.mmap.len() {
-            self.mmap[self.max_offset..self.max_offset + data_len].copy_from_slice(data.as_slice());
+        if write_pos + data_len <= self.mmap.len() {
+            self.mmap[write_pos..write_pos + data_len].copy_from_slice(data.as_slice());
 
             // Flush changes to disk (optional).
             self.mmap.flush().context(StdIOSnafu)?;
@@ -59,10 +60,11 @@ impl MemoryMappedFile {
     // Read data from the memory-mapped file.
     pub fn read(&self, offset: usize, data_size: usize) -> Result<Vec<u8>> {
         let mut buffer = vec![0; data_size];
+        let read_pos = offset - self.min_offset;
 
         // Ensure the buffer size matches the mapped region.
-        if offset + data_size < self.mmap.len() {
-            buffer.copy_from_slice(&self.mmap[offset..offset + data_size]);
+        if read_pos + data_size < self.mmap.len() {
+            buffer.copy_from_slice(&self.mmap[read_pos..read_pos + data_size]);
 
             Ok(buffer)
         } else {

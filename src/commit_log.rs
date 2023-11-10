@@ -1,5 +1,4 @@
 use std::path::PathBuf;
-use std::sync::{Arc, RwLock};
 use snafu::{location, Location};
 use crate::error::Error::InvalidInput;
 
@@ -8,7 +7,7 @@ use crate::mmap_file::MemoryMappedFile;
 use crate::error::Result;
 
 pub struct CommitLog {
-    current_file: Arc<RwLock<MemoryMappedFile>>,
+    current_file: MemoryMappedFile,
 }
 
 impl CommitLog {
@@ -16,27 +15,24 @@ impl CommitLog {
         let base_dir = PathBuf::from(base_path);
         let msg_log_path = base_dir.join("test.log");
         // Create or open the initial MemoryMappedFile
-        let current_file = Arc::new(RwLock::new(
-            MemoryMappedFile::open(msg_log_path.to_str().unwrap(), 0, max_file_size)?));
+        let current_file = MemoryMappedFile::open(
+            msg_log_path.to_str().unwrap(), 0, max_file_size)?;
 
         Ok(CommitLog {
             current_file
         })
     }
 
-    pub fn write_records(&self, data: &Vec<u8>) -> Result<usize> {
-        let mut current_file = self.current_file.write().unwrap();
-
+    pub fn write_records(&mut self, data: &Vec<u8>) -> Result<usize> {
         // Write the record to the current file
-        current_file.append(data)
+        self.current_file.append(data)
     }
 
     pub fn read_records(&self, msg_index_unit: &MessageIndexUnit) -> Result<Vec<u8>> {
         if msg_index_unit.size > 0 {
-            // Lock the RwLock for reading
-            let current_file = self.current_file.read().unwrap();
             // Read and return records
-            current_file.read(msg_index_unit.offset as usize, msg_index_unit.size as usize)
+            self.current_file.read(
+                msg_index_unit.offset as usize, msg_index_unit.size as usize)
         } else {
             Err(InvalidInput {
                 location: location!(),

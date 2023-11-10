@@ -23,7 +23,7 @@ impl MessageStore {
 
     pub async fn write_msg(&self, msg: Message) -> Result<usize> {
         // write the msg
-        let commit_log = self.commit_log.lock().unwrap();
+        let mut commit_log = self.commit_log.lock().unwrap();
         let encoded_msg = msg.encode()?;
         let msg_offset = commit_log.write_records(&encoded_msg)?;
 
