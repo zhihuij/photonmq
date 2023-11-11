@@ -39,10 +39,16 @@ pub enum Error {
         source: std::io::Error,
     },
 
+    #[snafu(display("Failed to execute sql"))]
+    Rusqlite {
+        location: Location,
+        source: rusqlite::Error,
+    },
+
     #[snafu(display("Failed to decode binary to message"))]
     InvalidInput {
         location: Location,
-        msg: String
+        msg: String,
     },
 }
 

@@ -1,8 +1,12 @@
 use std::collections::HashMap;
+use std::fs;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex, RwLock};
-use rusqlite::{params, Connection, Result};
+use rusqlite::{params, Connection};
 use serde::{Deserialize, Serialize};
+use snafu::ResultExt;
+use crate::error::{RusqliteSnafu, StdIOSnafu};
+use crate::error::Result;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Topic {
@@ -16,9 +20,12 @@ pub struct TopicMgr {
 }
 
 impl TopicMgr {
-    pub fn new(db_path: &str) -> Self {
+    pub fn new(db_path: &str) -> Result<Self> {
         let base_dir = PathBuf::from(db_path);
         let db_file_path = base_dir.join("db").join("topic.db");
+        // make sure the db directory is exist
+        fs::create_dir_all(db_file_path.parent().unwrap()).context(StdIOSnafu)?;
+
         let conn = Connection::open(db_file_path).unwrap();
 
         // create table for topic meta
@@ -30,10 +37,10 @@ impl TopicMgr {
             [],
         ).unwrap();
 
-        TopicMgr {
+        Ok(TopicMgr {
             db_connection: Arc::new(Mutex::new(conn)),
             topic_cache: Arc::new(RwLock::new(HashMap::new())),
-        }
+        })
     }
 
     pub fn create_topic(&self, topic: Topic) -> Result<()> {
@@ -41,7 +48,7 @@ impl TopicMgr {
         conn.execute(
             "INSERT INTO topic (topic_name, partition_number) VALUES (?1, ?2)",
             params![topic.topic_name, topic.partition_number],
-        )?;
+        ).context(RusqliteSnafu)?;
 
         let mut topics = self.topic_cache.write().unwrap();
 
@@ -57,7 +64,7 @@ impl TopicMgr {
         let conn = self.db_connection.lock().unwrap();
         conn.execute("DELETE FROM topic WHERE topic_name=?1",
                      params![topic_name],
-        )?;
+        ).context(RusqliteSnafu)?;
 
         let mut topics = self.topic_cache.write().unwrap();
         topics.remove(topic_name);
@@ -67,13 +74,13 @@ impl TopicMgr {
 
     pub fn list_topics(&self) -> Result<Vec<Topic>> {
         let conn = self.db_connection.lock().unwrap();
-        let mut stmt = conn.prepare("SELECT * FROM topic")?;
+        let mut stmt = conn.prepare("SELECT * FROM topic").context(RusqliteSnafu)?;
         let topic_iter = stmt.query_map([], |row| {
             Ok(Topic {
                 topic_name: row.get(1)?,
                 partition_number: row.get(2)?,
             })
-        });
+        }).context(RusqliteSnafu);
 
         match topic_iter {
             Ok(_) => {
@@ -108,7 +115,7 @@ impl TopicMgr {
                     partition_number: row.get(2)?,
                 })
             },
-        )
+        ).context(RusqliteSnafu)
     }
 }
 
@@ -126,7 +133,7 @@ mod tests {
     pub async fn test_write_read() -> Result<()> {
         let dir_path = create_temp_dir("topic_mgr_test");
         // Create or open the memory-mapped file.
-        let topic_mgr = TopicMgr::new(dir_path.path().to_str().unwrap());
+        let topic_mgr = TopicMgr::new(dir_path.path().to_str().unwrap())?;
 
         topic_mgr.create_topic(Topic {
             topic_name: "test_topic_name".to_string(),

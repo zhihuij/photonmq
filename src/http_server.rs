@@ -68,7 +68,7 @@ async fn delete_topic(State(topic_mgr_state): State<Arc<TopicMgr>>,
 
 #[debug_handler]
 async fn get_topic(State(topic_mgr_state): State<Arc<TopicMgr>>,
-                      Json(topic_info): Json<Value>) -> Response<Body> {
+                   Json(topic_info): Json<Value>) -> Response<Body> {
     let topic_info_result = topic_mgr_state.get_topic_info(topic_info["topic_name"].as_str().unwrap());
     match topic_info_result {
         Ok(topic_info) => {
@@ -80,7 +80,6 @@ async fn get_topic(State(topic_mgr_state): State<Arc<TopicMgr>>,
             Response::new(Body::from(err_msg))
         }
     }
-
 }
 
 #[debug_handler]
@@ -97,7 +96,7 @@ impl Server for HttpServer {
         let msg_store = MessageStore::open(&config).unwrap();
         let msg_store_state = Arc::new(msg_store);
 
-        let topic_mgr = TopicMgr::new(config.topic_store_path.as_str());
+        let topic_mgr = TopicMgr::new(config.topic_store_path.as_str()).unwrap();
         let topic_mgr_state = Arc::new(topic_mgr);
 
         let message_routes = Router::new()
