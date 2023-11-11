@@ -122,8 +122,8 @@ impl TopicMgr {
 #[cfg(test)]
 mod tests {
     use tempfile::{TempDir};
-    use std::io::{Result};
     use crate::topic_mgr::{Topic, TopicMgr};
+    use crate::error::Result;
 
     pub fn create_temp_dir(prefix: &str) -> TempDir {
         tempfile::Builder::new().prefix(prefix).tempdir().unwrap()
