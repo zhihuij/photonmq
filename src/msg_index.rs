@@ -32,7 +32,6 @@ impl MessageIndex {
 
         if file_num != 0 {
             mapped_file_queue.recovery(|mmap: &MmapMut, offset: usize| {
-                // TODO size of struct?
                 if offset + MSG_INDEX_UNIT_SIZE < mmap.len() {
                     let mut buffer: Vec<u8> = vec![0; MSG_INDEX_UNIT_SIZE - 8];
                     buffer.copy_from_slice(&mmap[offset + 8..offset + MSG_INDEX_UNIT_SIZE]);
