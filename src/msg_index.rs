@@ -9,7 +9,7 @@ pub struct MessageIndex {
     mapped_file_queue: MappedFileQueue,
 }
 
-pub const MSG_INDEX_UNIT_SIZE: usize = std::mem::size_of::<MessageIndexUnit>();
+pub const MSG_INDEX_UNIT_SIZE: usize = std::mem::size_of::<u64>() + std::mem::size_of::<u32>();
 
 pub struct MessageIndexUnit {
     pub offset: u64,
@@ -42,7 +42,7 @@ impl MessageIndex {
                     let size = u32::from_le_bytes(size_bytes);
 
                     if size > 0 {
-                        return Some(offset + MSG_INDEX_UNIT_SIZE);
+                        return Some(MSG_INDEX_UNIT_SIZE);
                     }
                 }
                 None

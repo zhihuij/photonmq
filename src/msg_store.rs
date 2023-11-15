@@ -38,7 +38,7 @@ impl MessageStore {
             topic: msg.topic.clone(),
             queue_id: msg.queue_id,
             msg_offset,
-            msg_size: msg_len + msg_len_bytes.len(),
+            msg_size: msg_len_bytes.len(),
             timestamp: msg.timestamp,
         };
 
