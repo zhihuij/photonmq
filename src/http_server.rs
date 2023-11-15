@@ -93,7 +93,7 @@ async fn list_topics(State(topic_mgr_state): State<Arc<TopicMgr>>) -> Response<B
 #[async_trait]
 impl Server for HttpServer {
     async fn start(&self, listening: SocketAddr, config: ConfigOptions) {
-        let msg_store = MessageStore::open(&config).unwrap();
+        let msg_store = MessageStore::new(&config).unwrap();
         let msg_store_state = Arc::new(msg_store);
 
         let topic_mgr = TopicMgr::new(config.topic_store_path.as_str()).unwrap();

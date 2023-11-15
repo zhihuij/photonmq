@@ -8,12 +8,17 @@ use crate::error::Result;
 pub struct IndexStore {
     config: ConfigOptions,
     index_map: HashMap<String, HashMap<u32, MessageIndex>>,
+    index_store_path: String,
 }
 
 impl IndexStore {
     // Constructor: Open or create a file for index store.
-    pub fn open(config: ConfigOptions) -> Result<Self> {
-        Ok(IndexStore { config, index_map: HashMap::new() })
+    pub fn new(config: ConfigOptions) -> Result<Self> {
+        let msg_store_path_clone = &config.msg_store_path;
+        let base_dir = PathBuf::from(msg_store_path_clone);
+        let index_store_path = base_dir.join("index").as_path().to_str().unwrap().to_string();
+
+        Ok(IndexStore { config, index_map: HashMap::new(), index_store_path })
     }
 
     pub fn put_msg_index(&mut self, dispatch_msg: &DispatchMessage) -> Result<usize> {
@@ -31,11 +36,8 @@ impl IndexStore {
         let topic_index_map = self.index_map.entry(topic.to_string()).or_insert_with(|| HashMap::new());
 
         topic_index_map.entry(queue_id).or_insert_with(|| {
-            let msg_store_path_clone = self.config.msg_store_path.clone();
-            let base_dir = PathBuf::from(msg_store_path_clone);
-            let index_store_path = base_dir.join("index");
-            MessageIndex::open(
-                index_store_path.as_path().to_str().unwrap(),
+            MessageIndex::new(
+                self.index_store_path.as_str(),
                 topic, queue_id, self.config.index_file_size).unwrap()
         })
     }

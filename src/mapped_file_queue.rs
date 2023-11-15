@@ -1,4 +1,5 @@
 use std::path::{Path, PathBuf};
+use memmap2::MmapMut;
 use snafu::{location, Location};
 use crate::error::Error::InvalidInput;
 use crate::error::Result;
@@ -11,10 +12,17 @@ pub struct MappedFileQueue {
 }
 
 impl MappedFileQueue {
-    pub fn open(store_path: &str, max_file_size: u64) -> Result<Self> {
-        // load exist mapped files
-        let mut mapped_files = Vec::new();
-        let store_path_dir = Path::new(store_path);
+    pub fn new(store_path: &str, max_file_size: u64) -> Result<Self> {
+        Ok(MappedFileQueue { store_path: store_path.to_string(), max_file_size, mapped_files: Vec::new() })
+    }
+
+    /*
+     * Recovery from restart or fault, load existed files.
+     */
+    pub fn recovery<Func>(&mut self, reader: Func)
+        where Func: Fn(&MmapMut, usize) -> Option<usize> {
+        let store_path_dir = Path::new(&self.store_path);
+        // TODO only read the several newest file
         for entry in store_path_dir.read_dir().unwrap() {
             if let Ok(entry) = entry {
                 let entry_path = entry.path();
@@ -22,16 +30,17 @@ impl MappedFileQueue {
                     let mapped_file_name = entry_path.file_name().unwrap().to_str().unwrap();
                     let mapped_file_path = entry_path.to_str().unwrap();
                     let start_offset: usize = mapped_file_name.parse().expect("Error while parse file name");
-                    let mapped_file = MemoryMappedFile::open(
-                        mapped_file_path, start_offset, max_file_size).expect("Error while load mapped file");
+                    let mut mapped_file = MemoryMappedFile::new(
+                        mapped_file_path, start_offset, self.max_file_size).expect("Error while load mapped file");
 
-                    println!("loaded mapped file: {:?}, offset={}", &entry.path(), start_offset);
-                    mapped_files.push(mapped_file);
+                    mapped_file.read_record(&reader);
+
+                    println!("loaded mapped file: {:?}, offset={}, max_offset={}", &entry.path(),
+                             mapped_file.get_min_offset(), mapped_file.get_max_offset());
+                    self.mapped_files.push(mapped_file);
                 }
             }
         }
-
-        Ok(MappedFileQueue { store_path: store_path.to_string(), max_file_size, mapped_files })
     }
 
     pub fn get_mapped_files(&self) -> &Vec<MemoryMappedFile> {
@@ -46,7 +55,7 @@ impl MappedFileQueue {
 
         println!("new memory mapped file: {:?}", &file_path);
 
-        let mapped_file = MemoryMappedFile::open(
+        let mapped_file = MemoryMappedFile::new(
             file_path.as_path().to_str().unwrap(), start_offset, self.max_file_size).unwrap();
 
         self.mapped_files.push(mapped_file);
@@ -114,7 +123,7 @@ mod tests {
     pub async fn test_write_read() -> Result<()> {
         let dir_path = create_temp_dir("topic_mgr_test");
         // Create or open the memory-mapped file.
-        let mut mapped_file_queue = MappedFileQueue::open(
+        let mut mapped_file_queue = MappedFileQueue::new(
             dir_path.path().to_str().unwrap(), 20)?;
 
         let test_str = "hello world".as_bytes();

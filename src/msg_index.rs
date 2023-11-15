@@ -1,5 +1,6 @@
 use std::path::PathBuf;
 use std::{fs, u32, u64, usize};
+use memmap2::MmapMut;
 use snafu::ResultExt;
 use crate::error::{Result, StdIOSnafu};
 use crate::mapped_file_queue::MappedFileQueue;
@@ -17,14 +18,36 @@ pub struct MessageIndexUnit {
 
 impl MessageIndex {
     // Constructor: Open or create a file for message index.
-    pub fn open(store_path: &str, topic: &str, queue_id: u32, max_file_size: u64) -> Result<Self> {
+    pub fn new(store_path: &str, topic: &str, queue_id: u32, max_file_size: u64) -> Result<Self> {
         let base_dir = PathBuf::from(store_path);
         let msg_index_dir = base_dir.join(topic).join(queue_id.to_string());
 
         fs::create_dir_all(&msg_index_dir).context(StdIOSnafu)?;
 
-        let mapped_file_queue = MappedFileQueue::open(
+        let read_dir = msg_index_dir.read_dir().unwrap();
+        let file_num = read_dir.count();
+
+        let mut mapped_file_queue = MappedFileQueue::new(
             msg_index_dir.as_path().to_str().unwrap(), max_file_size).unwrap();
+
+        if file_num != 0 {
+            mapped_file_queue.recovery(|mmap: &MmapMut, offset: usize| {
+                // TODO size of struct?
+                if offset + MSG_INDEX_UNIT_SIZE < mmap.len() {
+                    let mut buffer: Vec<u8> = vec![0; MSG_INDEX_UNIT_SIZE - 8];
+                    buffer.copy_from_slice(&mmap[offset + 8..offset + MSG_INDEX_UNIT_SIZE]);
+                    let msg_unit_slice = buffer.as_slice();
+
+                    let size_bytes: [u8; 4] = msg_unit_slice[0..4].try_into().unwrap();
+                    let size = u32::from_le_bytes(size_bytes);
+
+                    if size > 0 {
+                        return Some(offset + MSG_INDEX_UNIT_SIZE);
+                    }
+                }
+                None
+            });
+        }
 
         Ok(MessageIndex { mapped_file_queue })
     }

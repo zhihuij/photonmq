@@ -12,7 +12,7 @@ pub struct MemoryMappedFile {
 
 impl MemoryMappedFile {
     // Constructor: Open or create a memory-mapped file.
-    pub fn open(file_path: &str, start_offset: usize, file_size: u64) -> Result<Self> {
+    pub fn new(file_path: &str, start_offset: usize, file_size: u64) -> Result<Self> {
         let file = OpenOptions::new()
             .read(true)
             .write(true)
@@ -32,6 +32,25 @@ impl MemoryMappedFile {
 
     pub fn get_max_offset(&self) -> usize {
         self.max_offset
+    }
+
+    pub fn set_max_offset(&mut self, max_offset: usize) {
+        self.max_offset = max_offset;
+    }
+
+    pub fn read_record<Func>(&mut self, reader: &Func)
+        where Func: Fn(&MmapMut, usize) -> Option<usize> {
+        let mut write_pos = 0;
+        loop {
+            let read_result = reader(&self.mmap, write_pos);
+            match read_result {
+                None => { break; }
+                Some(offset) => {
+                    write_pos += offset;
+                    self.max_offset += offset;
+                }
+            }
+        }
     }
 
     // Write data to the memory-mapped file.
@@ -63,6 +82,7 @@ impl MemoryMappedFile {
         let mut buffer = vec![0; data_size];
         let read_pos = offset - self.min_offset;
 
+        // TODO mmap.len should be max_offset?
         // Ensure the buffer size matches the mapped region.
         if read_pos + data_size < self.mmap.len() {
             buffer.copy_from_slice(&self.mmap[read_pos..read_pos + data_size]);
@@ -93,7 +113,7 @@ mod tests {
         let file_size = 1024;
         let file_path = dir_path.path().join("temp_mmap_file");
         // Create or open the memory-mapped file.
-        let mut mem_mapped_file = MemoryMappedFile::open(
+        let mut mem_mapped_file = MemoryMappedFile::new(
             file_path.to_str().unwrap(), 0, file_size)?;
 
         // Write data to the memory-mapped file.

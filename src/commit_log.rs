@@ -1,8 +1,10 @@
+use std::fs;
 use std::path::PathBuf;
-use snafu::{location, Location};
+use memmap2::MmapMut;
+use snafu::{location, Location, ResultExt};
 use crate::error::Error::InvalidInput;
 use crate::msg_index::MessageIndexUnit;
-use crate::error::Result;
+use crate::error::{Result, StdIOSnafu};
 use crate::mapped_file_queue::MappedFileQueue;
 
 pub struct CommitLog {
@@ -10,12 +12,32 @@ pub struct CommitLog {
 }
 
 impl CommitLog {
-    pub fn open(store_path: &str, max_file_size: u64) -> Result<Self> {
+    pub fn new(store_path: &str, max_file_size: u64) -> Result<Self> {
         let base_dir = PathBuf::from(store_path);
-        let msg_index_dir = base_dir.join("commitlog");
+        let commit_log_dir = base_dir.join("commitlog");
 
-        let mapped_file_queue = MappedFileQueue::open(
-            msg_index_dir.as_path().to_str().unwrap(), max_file_size)?;
+        fs::create_dir_all(&commit_log_dir).context(StdIOSnafu)?;
+        let read_dir = commit_log_dir.read_dir().unwrap();
+        let file_num = read_dir.count();
+
+        let mut mapped_file_queue = MappedFileQueue::new(
+            commit_log_dir.as_path().to_str().unwrap(), max_file_size)?;
+        if file_num != 0 {
+            mapped_file_queue.recovery(|mmap: &MmapMut, offset: usize| {
+                let size = std::mem::size_of::<usize>();
+                if offset + size < mmap.len() {
+                    let mut buffer: Vec<u8> = vec![0; size];
+                    buffer.copy_from_slice(&mmap[offset..offset + size]);
+
+                    let msg_len = usize::from_le_bytes(buffer.as_slice().try_into().unwrap());
+                    if msg_len > 0 {
+                        return Some(msg_len + size);
+                    }
+                }
+                None
+            });
+        }
+
         Ok(CommitLog { mapped_file_queue })
     }
 
