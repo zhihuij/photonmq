@@ -8,7 +8,7 @@ use serde_json::Value;
 use crate::config::ConfigOptions;
 
 use crate::server::Server;
-use crate::message::Message;
+use crate::message::{ConsumeMessageRequest, Message};
 use crate::msg_store::MessageStore;
 use crate::topic_mgr::{Topic, TopicMgr};
 
@@ -33,17 +33,14 @@ async fn produce_message(State(msg_store_state): State<Arc<MessageStore>>,
 
 #[debug_handler]
 async fn consume_message(State(msg_store_state): State<Arc<MessageStore>>,
-                         Json(consume_msg): Json<Message>) -> Response<Body> {
+                         Json(consume_msg): Json<ConsumeMessageRequest>) -> Response<Body> {
     println!("consume message: {:?}", &consume_msg);
 
     let read_result = msg_store_state.read_msg(consume_msg).await;
     match read_result {
         Ok(msg_list) => {
-            let msg0 = msg_list.get(0).unwrap();
-            let msg_json = serde_json::to_string(&msg0).unwrap();
-
-            let consumed_msg = format!("{:?}", msg_json);
-            Response::new(Body::from(consumed_msg))
+            let msg_json = serde_json::to_string(&msg_list).unwrap();
+            Response::new(Body::from(msg_json))
         }
         Err(error) => {
             let err_msg = format!("consume message error: {:?}", error);

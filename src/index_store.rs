@@ -27,9 +27,18 @@ impl IndexStore {
         msg_index.put_msg_index(dispatch_msg.msg_offset, dispatch_msg.msg_size)
     }
 
-    pub fn read_msg_index(&mut self, topic: &str, queue_id: u32, index_offset: usize) -> Result<MessageIndexUnit> {
+    pub fn read_msg_index(&mut self, topic: &str, queue_id: u32,
+                          index_offset: usize, max_msg_count: usize) -> Vec<MessageIndexUnit> {
         let msg_index = self.find_or_create_index(topic, queue_id);
-        msg_index.read_msg_index(index_offset)
+
+        let mut index_list = Vec::new();
+        for index in index_offset..index_offset + max_msg_count {
+            if let Ok(index_unit) = msg_index.read_msg_index(index) {
+                index_list.push(index_unit);
+            }
+        }
+
+        index_list
     }
 
     fn find_or_create_index(&mut self, topic: &str, queue_id: u32) -> &mut MessageIndex {

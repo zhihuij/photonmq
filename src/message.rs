@@ -9,9 +9,16 @@ pub struct Message {
     pub queue_id: u32,
     pub timestamp: u64,
     pub payload: Option<String>,
-    pub offset: Option<usize>,
     pub key: Option<String>,
     pub header: Option<HashMap<String, String>>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ConsumeMessageRequest {
+    pub topic: String,
+    pub queue_id: u32,
+    pub offset: usize,
+    pub max_msg_count: usize,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -50,7 +57,6 @@ mod tests {
             key: Some("message_key".to_string()),
             timestamp: 1631894400,
             payload: Some(payload),
-            offset: None,
             header: None,
         };
 

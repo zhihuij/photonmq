@@ -34,10 +34,6 @@ impl MemoryMappedFile {
         self.max_offset
     }
 
-    pub fn set_max_offset(&mut self, max_offset: usize) {
-        self.max_offset = max_offset;
-    }
-
     pub fn read_record<Func>(&mut self, reader: &Func)
         where Func: Fn(&MmapMut, usize) -> Option<usize> {
         let mut write_pos = 0;

@@ -43,10 +43,6 @@ impl MappedFileQueue {
         }
     }
 
-    pub fn get_mapped_files(&self) -> &Vec<MemoryMappedFile> {
-        &self.mapped_files
-    }
-
     pub fn create_mapped_file(&mut self, start_offset: usize) -> &mut MemoryMappedFile {
         let store_path_clone = self.store_path.clone();
         let base_dir = PathBuf::from(store_path_clone);

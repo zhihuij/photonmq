@@ -2,7 +2,7 @@ use std::sync::{Arc, Mutex};
 use crate::commit_log::CommitLog;
 use crate::config::ConfigOptions;
 use crate::index_store::IndexStore;
-use crate::message::{DispatchMessage, Message};
+use crate::message::{ConsumeMessageRequest, DispatchMessage, Message};
 use crate::error::Result;
 
 pub struct MessageStore {
@@ -46,31 +46,26 @@ impl MessageStore {
         index_store.put_msg_index(&dispatch_msg)
     }
 
-    pub async fn read_msg(&self, consume_msg: Message) -> Result<Vec<Message>> {
+    pub async fn read_msg(&self, consume_msg: ConsumeMessageRequest) -> Result<Vec<Message>> {
         let commit_log = self.commit_log.lock().unwrap();
         let mut index_store = self.index_store.lock().unwrap();
 
         let index_query_result = index_store.read_msg_index(
             consume_msg.topic.as_str(),
             consume_msg.queue_id,
-            consume_msg.offset.unwrap());
+            consume_msg.offset,
+            consume_msg.max_msg_count);
 
-        match index_query_result {
-            Ok(msg_index_unit) => {
-                let msg_content = commit_log.read_records(&msg_index_unit)?;
+        let mut result_msg_list = Vec::new();
 
-                let msg_len_size = std::mem::size_of::<usize>();
+        for msg_index_unit in index_query_result {
+            let msg_content = commit_log.read_records(&msg_index_unit)?;
+            let msg_len_size = std::mem::size_of::<usize>();
+            let msg = Message::decode(&msg_content.as_slice()[msg_len_size..])?;
 
-                let mut result_vec = Vec::new();
-                let msg = Message::decode(&msg_content.as_slice()[msg_len_size..])?;
-
-                result_vec.push(msg);
-
-                Ok(result_vec)
-            }
-            Err(err) => {
-                Err(err)
-            }
+            result_msg_list.push(msg);
         }
+
+        Ok(result_msg_list)
     }
 }
