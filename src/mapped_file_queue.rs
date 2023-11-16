@@ -16,6 +16,11 @@ impl MappedFileQueue {
         Ok(MappedFileQueue { store_path: store_path.to_string(), max_file_size, mapped_files: Vec::new() })
     }
 
+    #[allow(dead_code)]
+    pub fn get_mapped_files(&self) -> &Vec<MemoryMappedFile> {
+        &self.mapped_files
+    }
+
     /*
      * Recovery from restart or fault, load existed files.
      */
