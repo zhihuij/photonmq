@@ -22,7 +22,6 @@ impl MemoryMappedFile {
 
         let mmap = unsafe { MmapMut::map_mut(&file).context(StdIOSnafu)? };
 
-        // TODO max_offset?
         Ok(MemoryMappedFile { mmap, min_offset: start_offset, max_offset: start_offset })
     }
 
@@ -78,9 +77,8 @@ impl MemoryMappedFile {
         let mut buffer = vec![0; data_size];
         let read_pos = offset - self.min_offset;
 
-        // TODO mmap.len should be max_offset?
-        // Ensure the buffer size matches the mapped region.
-        if read_pos + data_size < self.mmap.len() {
+        // Ensure read offset + data size doesn't exceed the max offset.
+        if read_pos + data_size <= self.max_offset {
             buffer.copy_from_slice(&self.mmap[read_pos..read_pos + data_size]);
 
             Ok(buffer)
