@@ -1,7 +1,7 @@
 use std::sync::{Arc, Mutex};
-use crate::commit_log::CommitLog;
+use crate::storage::commit_log::CommitLog;
 use crate::config::ConfigOptions;
-use crate::index_store::IndexStore;
+use crate::storage::index_store::IndexStore;
 use crate::message::{ConsumeMessageRequest, DispatchMessage, Message};
 use crate::error::Result;
 

@@ -3,7 +3,7 @@ use memmap2::MmapMut;
 use snafu::{location, Location};
 use crate::error::Error::InvalidInput;
 use crate::error::Result;
-use crate::mmap_file::MemoryMappedFile;
+use crate::storage::mmap_file::MemoryMappedFile;
 
 pub struct MappedFileQueue {
     store_path: String,

@@ -3,9 +3,9 @@ use std::path::PathBuf;
 use memmap2::MmapMut;
 use snafu::{location, Location, ResultExt};
 use crate::error::Error::InvalidInput;
-use crate::msg_index::MessageIndexUnit;
+use crate::storage::msg_index::MessageIndexUnit;
 use crate::error::{Result, StdIOSnafu};
-use crate::mapped_file_queue::MappedFileQueue;
+use crate::storage::mapped_file_queue::MappedFileQueue;
 
 pub struct CommitLog {
     mapped_file_queue: MappedFileQueue,

@@ -1,15 +1,10 @@
-mod mmap_file;
 mod server;
 mod message;
 mod http_server;
-mod commit_log;
-mod msg_index;
 mod topic_mgr;
 mod config;
-mod msg_store;
-mod index_store;
 mod error;
-mod mapped_file_queue;
+mod storage;
 
 use std::error::Error;
 use std::net::SocketAddr;

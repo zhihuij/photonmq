@@ -9,7 +9,7 @@ use crate::config::ConfigOptions;
 
 use crate::server::Server;
 use crate::message::{ConsumeMessageRequest, Message};
-use crate::msg_store::MessageStore;
+use crate::storage::msg_store::MessageStore;
 use crate::topic_mgr::{Topic, TopicMgr};
 
 pub struct HttpServer;

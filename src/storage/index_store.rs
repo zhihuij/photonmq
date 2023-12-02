@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 use crate::config::ConfigOptions;
 use crate::message::DispatchMessage;
-use crate::msg_index::{MessageIndex, MessageIndexUnit};
+use crate::storage::msg_index::{MessageIndex, MessageIndexUnit};
 use crate::error::Result;
 
 pub struct IndexStore {

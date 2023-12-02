@@ -2,7 +2,7 @@ use config::{Config, File, FileFormat};
 use serde::{Deserialize, Serialize};
 use snafu::ResultExt;
 use crate::error::{LoadLayeredConfigSnafu, Result};
-use crate::msg_index::MSG_INDEX_UNIT_SIZE;
+use crate::storage::msg_index::MSG_INDEX_UNIT_SIZE;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(default)]

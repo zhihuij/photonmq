@@ -3,7 +3,7 @@ use std::{fs, u32, u64, usize};
 use memmap2::MmapMut;
 use snafu::ResultExt;
 use crate::error::{Result, StdIOSnafu};
-use crate::mapped_file_queue::MappedFileQueue;
+use crate::storage::mapped_file_queue::MappedFileQueue;
 
 pub struct MessageIndex {
     mapped_file_queue: MappedFileQueue,
