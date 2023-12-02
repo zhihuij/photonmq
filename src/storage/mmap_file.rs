@@ -94,7 +94,7 @@ impl MemoryMappedFile {
 #[cfg(test)]
 mod tests {
     use tempfile::{TempDir};
-    use crate::mmap_file::MemoryMappedFile;
+    use crate::storage::mmap_file::MemoryMappedFile;
     use crate::error::Result;
 
     pub fn create_temp_dir(prefix: &str) -> TempDir {

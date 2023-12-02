@@ -114,7 +114,7 @@ impl MappedFileQueue {
 mod tests {
     use tempfile::{TempDir};
     use crate::error::Result;
-    use crate::mapped_file_queue::MappedFileQueue;
+    use crate::storage::mapped_file_queue::MappedFileQueue;
 
     pub fn create_temp_dir(prefix: &str) -> TempDir {
         tempfile::Builder::new().prefix(prefix).tempdir().unwrap()
