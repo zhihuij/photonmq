@@ -4,3 +4,4 @@ pub mod msg_store;
 mod index_store;
 pub mod msg_index;
 mod mmap_file;
+mod object_store;

@@ -1,2 +1,5 @@
 msg_store_path = "/Users/winpro/Documents/RustWorkspace/test_data"
 topic_store_path = "/Users/winpro/Documents/RustWorkspace/test_data"
+
+[storage]
+type = "Oss"

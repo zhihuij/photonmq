@@ -21,18 +21,6 @@ pub enum Error {
         source: bincode::Error,
     },
 
-    #[snafu(display("Failed to encode message to binary format"))]
-    EncodeMsgJson {
-        location: Location,
-        source: serde_json::Error,
-    },
-
-    #[snafu(display("Failed to decode binary to message"))]
-    DecodeMsgJson {
-        location: Location,
-        source: serde_json::Error,
-    },
-
     #[snafu(display("Failed to decode binary to message"))]
     StdIO {
         location: Location,
@@ -49,6 +37,18 @@ pub enum Error {
     InvalidInput {
         location: Location,
         msg: String,
+    },
+
+    #[snafu(display("Failed to build the object store"))]
+    ObjectStoreBuild {
+        location: Location,
+        source: opendal::Error
+    },
+
+    #[snafu(display("Failed to access the object store"))]
+    ObjectStoreAccess {
+        location: Location,
+        source: opendal::Error
     },
 }
 
